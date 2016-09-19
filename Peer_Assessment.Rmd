@@ -1,0 +1,91 @@
+---
+title: "Exploring mtcars dataset"
+author: "Valentin Goverdovsky"
+date: "26 January 2016"
+output: pdf_document
+---
+
+#Executive summary
+
+This report explores **mtcars** dataset and in particular the relationship between the type of transmission and fuel economy. To analyse the dataset, linear regression modelling methods are employed. Using these we establish that the transmission type has limited effect on fuel economy if other variables are taken into account.
+
+
+#Exploring the dataset
+
+Firstly we check if it is possible to visually observe any relation between fuel consumption and the type of transmission. It's easiest to visualize using a boxplot, see *Figure 1* in the **Appendix**. There is clear difference between the two boxplots suggesting that cars with automatic transmission have lower fuel efficiency compared to those with manual transmission.
+
+#Analysis
+To quantify the observed relation between **am** and **mpg** we can fit a linear regression with one variable and check the coefficients:
+
+```{r, echo=FALSE}
+fit1<-lm(mpg~am,data=mtcars)
+summary(fit1)$coef
+```
+The intercept coefficient shows the mean miles per gallon for cars with automatic transmission, while **am** coefficient indicates increase in the mean mpg in cars with manual transmission compared to those with automatic transmission. It suggests that the cars with manual transmission do 7 (+/- 1.76) miles per gallon more compared to those with automatic transmission. Both coefficients are statistically significant.
+
+The observed relationship is not exactly intuitive, thus further investigation is required to establish if there are any confounding variables. Confounding variables would exhibit strong association with the predictor and we can find these by fitting a linear model between __am__ and each of the other variables and finding only those with statistically significant coefficients:
+
+```{r, echo=FALSE}
+pval <- numeric(dim(mtcars)[2] - 2)
+subcars <- subset(mtcars, select = c(-mpg,-am))
+for (i in seq(dim(mtcars)[2] - 2)) {
+    fit<-lm(mtcars[,names(mtcars) == 'am'] ~ subcars[,i])
+    pval[i]=summary(fit)$coef[2,4]
+}
+names(subcars)[pval<0.05]
+```
+Now we can add these variables to the linear model and check the coefficients:
+
+```{r, echo=FALSE}
+fit2<-update(fit1,mpg~am+cyl+disp+drat+wt+gear)
+summary(fit2)$coef
+```
+This time we observe that the **am** variable has limited effect on fuel economy - its coefficient is not statistically significant. To check if there are any outliers in this model we investigate the residuals using the standard residual plots, see *Figure 2* in the **Appendix**. These don't exhibit any particular abnormalities, thus we conclude that __fit2__ is a good model.
+
+Finally we attempt to investigate if including other variables in the model would be beneficial by fitting the model with all the variables included and using analysis of variance to verify if adding all the variables to the model produced a better fit:
+
+```{r}
+fitAll<-lm(mpg~.,data=mtcars)
+anova(fit1,fit2,fitAll)
+```
+
+The p-value for the model with all the variables included when compared to fit2 is not significant, implying that **am, cyl, disp, wt, gear and drat** variables explain the majority of the variation in the **mpg**.
+
+#Conclusion
+
+When taken in isolation the transmission type seems to exhibit strong correlation with the fuel economy of the cars, but when other variables, such as weight, rear axle ratio, the number of forward gears, etc. are also included in the linear model the effect of the transmission type is significantly reduced implying limited or no effect on the fuel economy.
+
+\newpage
+
+#Appendix
+
+
+```{r, echo=FALSE, fig.cap='MPG vs Transmission', fig.align='center', fig.pos='h'}
+library(ggplot2)
+data(mtcars)
+
+g <- ggplot(mtcars, aes(x = factor(am), y = mpg)) + 
+     geom_boxplot(aes(fill=factor(am))) + 
+     labs(x = 'Transmission', y = 'MPG') + 
+     scale_fill_discrete(name='Transmission Type',
+                         breaks=c('0', '1'),
+                         labels=c('Automatic', 'Manual')) +
+     theme(axis.ticks = element_blank(), axis.text.x = element_blank())
+g
+```
+
+```{r, echo=FALSE, fig.cap='Residual analysis plot', fig.align='center', fig.height=6}
+par(mfrow=c(2,2))
+plot(fit2)
+```
+
+Code for finding variables which have statistically significant influence on __am__ variable:
+```{r, results = FALSE}
+pval <- numeric(dim(mtcars)[2] - 2)
+subcars <- subset(mtcars, select = c(-mpg,-am))
+for (i in seq(dim(mtcars)[2] - 2)) {
+    fit<-lm(mtcars[,names(mtcars) == 'am'] ~ subcars[,i])
+    pval[i]=summary(fit)$coef[2,4]
+}
+names(subcars)[pval<0.05]
+```

@@ -1,0 +1,33 @@
+---
+title: "Exploring mtcars dataset"
+author: "Valentin Goverdovsky"
+date: "26 January 2016"
+output: html_document
+---
+
+##Executive summary
+
+This report explores **mtcars** dataset and in particular aims to answer the following two questions:
+
+* Is an automatic or manual transmission better for MPG?
+* Quantify the MPG difference between automatic and manual transmissions.
+
+To analyse the dataset linear regression modelling methods are employed. Using these it was found that ...
+
+
+##Exploring the dataset
+
+First of all let's see if
+```{r, echo=FALSE}
+library(ggplot2)
+data(mtcars)
+
+g <- ggplot(mtcars, aes(x = factor(am), y = mpg)) + 
+     geom_boxplot(aes(fill=factor(am))) + 
+     labs(x = 'Transmission', y = 'MPG') + 
+     scale_fill_discrete(name='Transmission Type',
+                         breaks=c('0', '1'),
+                         labels=c('Automatic', 'Manual')) +
+     theme(axis.ticks = element_blank(), axis.text.x = element_blank())
+g
+```
